@@ -3,6 +3,7 @@
     <el-card class="box-card">
       <div slot="header" class="clearfix">
         <span>工具路径配置管理</span>
+        <span class="warning">(需要先保存在加载load进内存)</span>
         <div style="float:right">
           <el-button type="primary" size="small" @click="fetchTools">刷新</el-button>
           <el-button type="success" size="small" @click="onSave" :loading="saving">保存</el-button>
@@ -28,6 +29,11 @@
           <el-input v-model.trim="form.chromePath" placeholder="例如：/usr/bin/google-chrome 或 C:\Program Files\Chrome\chrome.exe" />
         </el-form-item>
 
+
+        <el-form-item>
+          <el-button type="onload" @click="onReload">加载配置</el-button>
+        </el-form-item>
+
         <el-form-item>
           <el-button type="info" @click="onReset">重置</el-button>
         </el-form-item>
@@ -39,7 +45,7 @@
 
 <script>
 import axios from 'axios';
-import { getTools, updateTools } from '@/api/tools';
+import { getTools, updateTools,reloadTools } from '@/api/tools';
 
 export default {
   name: 'ToolsSetting',
@@ -49,10 +55,9 @@ export default {
         xrayPath: '',
         crawlergoPath: '',
         chromePath: '',
-        resultDir: '',
         extra: ''
       },
-      original: null, // 用于重置
+      original: null,
       saving: false,
       testing: false,
       rules: {
@@ -64,9 +69,6 @@ export default {
         ],
         chromePath: [
           { required: true, message: '请填写 Chrome 可执行路径', trigger: 'blur' }
-        ],
-        resultDir: [
-          { required: true, message: '请填写结果目录', trigger: 'blur' }
         ]
       }
     };
@@ -85,7 +87,6 @@ export default {
           xrayPath: data.xrayPath || '',
           crawlergoPath: data.crawlergoPath || '',
           chromePath: data.chromePath || '',
-          resultDir: data.resultDir || '',
           extra: typeof data.extra === 'string' ? data.extra : extraStr
         };
         // 存储原始，用于重置
@@ -143,9 +144,16 @@ export default {
       }
     },
 
-   
+  async onReload() {
+      try {
+        await reloadTools();
+        this.$message.success('配置已重新加载');
+      } catch (err) {
+        console.error(err);
+        this.$message.error('重新加载配置失败：' + (err.response?.data || err.message || err));
+      }
+    },
 
-    // 批量测试所有关键路径
 
   }
 };
@@ -162,5 +170,9 @@ export default {
   display: flex;
   gap: 8px;
   margin-top: 8px;
+}
+
+.warning {
+  color: #e74c3c;
 }
 </style>

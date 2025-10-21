@@ -4,17 +4,17 @@ const baseURL = 'api/tasks'
 
 // 分页获取任务
 export function getTaskList(page, size,source) {
-  return request.get("api/tasks", { params: { page, size,source } })
+  return request.get(`${baseURL}`, { params: { page, size,source } })
 }
 
 export function getOne(id) {
-  return request.get("api/tasks/get", { params: { taskId: id } })
+  return request.get(`${baseURL}/get`, { params: { taskId: id } })
 }
 
 
 // 添加任务
 export function addTask(data) {
-  return request.post("api/tasks", data)
+  return request.post(`${baseURL}`, data)
 }
 
 // // 删除任务
@@ -23,7 +23,7 @@ export function addTask(data) {
 // }
 
 export function addBatchTask(data) {
-  return request.post("api/tasks/batch", data)
+  return request.post(`${baseURL}/batch`, data)
 }
 
 export function deleteTask(id) {
@@ -50,11 +50,13 @@ export function startGroupTask(id,source) {
 }
 
 
+
+
 // 停止任务
 export function stopTask(id) {
   const isNumeric = /^[0-9]+$/.test(id)
-  const endpoint = isNumeric ? `${baseURL}/${id}/stopTask` : `${baseURL}/group/${id}/stopTaskByGroup`
-  return request.get(endpoint)
+  const endpoint = isNumeric ? `${baseURL}/${id}/stopTask` : `${baseURL}/stopTaskByGroup`
+  return request.get(endpoint,{ params: { id } })
 }
 
 

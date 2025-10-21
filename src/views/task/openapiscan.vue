@@ -193,8 +193,8 @@ export default {
         const res = await getTaskList(this.currentPage, this.pageSize,this.source)
         console.log('后端返回:', res)
 
-        // axios 通常返回 res.data
-        const data = res.data || res
+        // axios 通常返回 res
+        const data = res || res
         this.taskList = data.list || []
         this.total = data.total || 0
       } catch (err) {
@@ -220,7 +220,7 @@ export default {
     async stopTaskById(row) {
       try {
         const res = await stopTask(row.id)
-        if(res.data === 13000){
+        if(res === 13000){
           this.$message.success('任务已停止')
           this.loadTaskList()
         }else{
@@ -235,7 +235,7 @@ export default {
     async deleteTaskById(id) {
       try {
         const res = await deleteTask(id)
-        if(res.data === 1){
+        if(res === 1){
           this.$message.success('任务已删除')
           this.loadTaskList()
         }else{

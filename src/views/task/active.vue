@@ -31,95 +31,111 @@
 
       <template v-if="taskList.length">
         <el-table
-  :data="taskList"
-  border
-  stripe
-  highlight-current-row
-  class="task-table"
->
-  <!-- 展开列：仅对任务组有效 -->
-  <el-table-column type="expand" v-if="taskList.some(t => t.isGroup)">
-    <template slot-scope="scope">
-      <el-table
-        :data="scope.row.urls"
-        size="small"
-        border
-        style="margin-left: 50px; width: 90%"
-      >
-        <el-table-column prop="url" label="URL" />
-        <el-table-column prop="status" label="状态" width="100">
-          <template slot-scope="s">
-            <el-tag size="small" :type="s.row.status === 1 ? 'warning' : s.row.status === 2 ? 'success' : 'info'">
-              {{ getStatusLabel(s.row.status) }}
-            </el-tag>
-          </template>
-        </el-table-column>
-      </el-table>
-    </template>
-  </el-table-column>
+          :data="taskList"
+          border
+          stripe
+          highlight-current-row
+          class="task-table"
+        >
+          <!-- 展开列：仅对任务组有效 -->
+          <el-table-column type="expand" v-if="taskList.some(t => t.isGroup)">
+            <template slot-scope="scope">
+              <el-table
+                :data="scope.row.urls"
+                size="small"
+                border
+                style="margin-left: 50px; width: 90%"
+              >
+                <el-table-column prop="url" label="URL" />
+                <el-table-column prop="status" label="状态" width="100">
+                  <template slot-scope="s">
+                    <el-tag
+                      size="small"
+                      :type="s.row.status === 1 ? 'warning' : s.row.status === 2 ? 'success' : 'info'"
+                    >
+                      {{ getStatusLabel(s.row.status) }}
+                    </el-tag>
+                  </template>
+                </el-table-column>
+                <!-- 操作列：查看详情 -->
+                <el-table-column label="操作" width="120" align="center">
+                  <template slot-scope="s">
+                    <el-button
+                      type="primary"
+                      size="mini"
+                      plain
+                      icon="el-icon-view"
+                      @click="goToDetail(s.row, scope.row.groupId)"
+                    >
+                      详情
+                    </el-button>
+                  </template>
+                </el-table-column>
+              </el-table>
+            </template>
+          </el-table-column>
 
-  <el-table-column align="center" label="ID" width="70">
-    <template slot-scope="scope">{{ scope.$index + 1 }}</template>
-  </el-table-column>
+          <el-table-column align="center" label="ID" width="70">
+            <template slot-scope="scope">{{ scope.$index + 1 }}</template>
+          </el-table-column>
 
-  <el-table-column prop="name" label="任务/任务组名称" min-width="180" show-overflow-tooltip />
-  <el-table-column prop="url" label="扫描URL" v-if="!taskList.some(t => t.isGroup)" show-overflow-tooltip />
-  <el-table-column label="类型" width="100" align="center">
-    <template slot-scope="scope">
-      <el-tag type="info" size="small">{{ scope.row.isGroup ? '任务组' : '单任务' }}</el-tag>
-    </template>
-  </el-table-column>
-  <el-table-column label="状态" width="120" align="center">
-    <template slot-scope="scope">
-      <el-tag size="small" :type="scope.row.status === 1 ? 'warning' : scope.row.status === 2 ? 'success' : 'info'">
-        {{ getStatusLabel(scope.row.status) }}
-      </el-tag>
-    </template>
-  </el-table-column>
+          <el-table-column prop="name" label="任务/任务组名称" min-width="180" show-overflow-tooltip />
+          <el-table-column prop="url" label="扫描URL" v-if="!taskList.some(t => t.isGroup)" show-overflow-tooltip />
+          <el-table-column label="类型" width="100" align="center">
+            <template slot-scope="scope">
+              <el-tag type="info" size="small">{{ scope.row.isGroup ? '任务组' : '单任务' }}</el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column label="状态" width="120" align="center">
+            <template slot-scope="scope">
+              <el-tag size="small" :type="scope.row.status === 1 ? 'warning' : scope.row.status === 2 ? 'success' : 'info'">
+                {{ getStatusLabel(scope.row.status) }}
+              </el-tag>
+            </template>
+          </el-table-column>
 
-  <el-table-column label="创建时间" width="180" align="center">
-    <template slot-scope="scope">{{ formatDate(scope.row.createtime) }}</template>
-  </el-table-column>
+          <el-table-column label="创建时间" width="180" align="center">
+            <template slot-scope="scope">{{ formatDate(scope.row.createtime) }}</template>
+          </el-table-column>
 
-  <el-table-column label="操作" width="180" align="center">
-    <template slot-scope="{ row }">
-      <el-dropdown trigger="click" placement="bottom">
-        <el-button type="primary" size="mini" plain>
-          操作<i class="el-icon-arrow-down el-icon--right"></i>
-        </el-button>
-        <el-dropdown-menu slot="dropdown">
-          <el-dropdown-item
-            icon="el-icon-video-play"
-            @click.native="startTaskById(row)"
-          >
-            开始
-          </el-dropdown-item>
-          <el-dropdown-item
-            icon="el-icon-video-pause"
-            @click.native="stopTaskById(row)"
-          >
-            停止
-          </el-dropdown-item>
-          <el-dropdown-item
-            icon="el-icon-view"
-            v-if="!row.isGroup"
-            @click.native="goToDetail(row)"
-          >
-            查看详情
-          </el-dropdown-item>
-          <el-dropdown-item
-            divided
-            icon="el-icon-delete"
-            @click.native="deleteTaskById(row.isGroup ? row.groupId : row.id)"
-          >
-            删除
-          </el-dropdown-item>
-        </el-dropdown-menu>
-      </el-dropdown>
-    </template>
-  </el-table-column>
-</el-table>
-
+          <el-table-column label="操作" width="180" align="center">
+            <template slot-scope="{ row }">
+              <el-dropdown trigger="click" placement="bottom">
+                <el-button type="primary" size="mini" plain>
+                  操作<i class="el-icon-arrow-down el-icon--right"></i>
+                </el-button>
+                <el-dropdown-menu slot="dropdown">
+                  <el-dropdown-item
+                    icon="el-icon-video-play"
+                    @click.native="startTaskById(row)"
+                  >
+                    开始
+                  </el-dropdown-item>
+                  <el-dropdown-item
+                    icon="el-icon-video-pause"
+                    @click.native="stopTaskById(row)"
+                  >
+                    停止
+                  </el-dropdown-item>
+                  <el-dropdown-item
+                    icon="el-icon-view"
+                    v-if="!row.isGroup"
+                    @click.native="goToDetail(row)"
+                  >
+                    查看详情
+                  </el-dropdown-item>
+                  <el-dropdown-item
+                    divided
+                    icon="el-icon-delete"
+                    @click.native="deleteTaskById(row.isGroup ? row.groupId : row.id)"
+                  >
+                    删除
+                  </el-dropdown-item>
+                </el-dropdown-menu>
+              </el-dropdown>
+            </template>
+          </el-table-column>
+        </el-table>
 
         <div class="pagination">
           <el-pagination
@@ -141,39 +157,36 @@
     </el-card>
 
     <!-- 添加任务弹窗 -->
-   <el-dialog title="添加扫描任务" :visible.sync="showAddTaskDialog" width="520px">
-  <el-form label-width="100px" label-position="left">
-    <el-form-item label="任务名称">
-      <el-input v-model.trim="taskName" placeholder="请输入任务名称" />
-    </el-form-item>
-  <el-form-item label="扫描URL">
-  <el-input
-    type="textarea"
-    :rows="4"
-    v-model="scanUrls"
-    placeholder="请输入扫描URL，每行一个，如果只填一行则为单任务"
-  />
-</el-form-item>
-
-    <el-form-item label="报告格式">
-      <el-select v-model="dialogSelectedFormat" placeholder="选择报告格式">
-        <el-option label="HTML" value="html" />
-        <el-option label="JSON" value="json" />
-      </el-select>
-    </el-form-item>
-  </el-form>
-  <span slot="footer">
-    <el-button @click="showAddTaskDialog = false">取消</el-button>
-    <el-button type="primary" @click="submitAddTask">提交</el-button>
-  </span>
-</el-dialog>
-
+    <el-dialog title="添加扫描任务" :visible.sync="showAddTaskDialog" width="520px">
+      <el-form label-width="100px" label-position="left">
+        <el-form-item label="任务名称">
+          <el-input v-model.trim="taskName" placeholder="请输入任务名称" />
+        </el-form-item>
+        <el-form-item label="扫描URL">
+          <el-input
+            type="textarea"
+            :rows="4"
+            v-model="scanUrls"
+            placeholder="请输入扫描URL，每行一个，如果只填一行则为单任务"
+          />
+        </el-form-item>
+        <el-form-item label="报告格式">
+          <el-select v-model="dialogSelectedFormat" placeholder="选择报告格式">
+            <el-option label="HTML" value="html" />
+            <el-option label="JSON" value="json" />
+          </el-select>
+        </el-form-item>
+      </el-form>
+      <span slot="footer">
+        <el-button @click="showAddTaskDialog = false">取消</el-button>
+        <el-button type="primary" @click="submitAddTask">提交</el-button>
+      </span>
+    </el-dialog>
   </div>
 </template>
 
 <script>
-import { getTaskList, addTask, deleteTask, updateTaskStatus, startTask, stopTask, updateTask,addBatchTask } from '@/api/task'
-import axios from 'axios';
+import { getTaskList, addTask, deleteTask, updateTaskStatus, startTask, stopTask, updateTask,addBatchTask,startGroupTask } from '@/api/task'
 
 
 export default {
@@ -254,7 +267,7 @@ async loadTaskList() {
           grouped[task.groupId] = {
             isGroup: true,
             groupId: task.groupId,
-            name: task.name?.split('-')[0] || '任务组',
+            name: `${task.name?.split('-')[0] || '任务组'}--(${task.groupId})`,
             urls: [],
             status: task.status,
             createtime: task.createtime,
@@ -377,7 +390,7 @@ async startTaskById(row) {
 
   async stopTaskById(row) {
     try {
-      const res = await stopTask(row.id);
+      const res = await stopTask(row.groupId);
 
       if(res === 13000){
         this.$message.success('任务已停止');

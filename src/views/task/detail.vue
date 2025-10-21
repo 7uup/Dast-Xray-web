@@ -79,8 +79,8 @@ export default {
     async loadTask() {
       try {
         const res = await getOne(this.id)
-        if (res.data) {
-          this.task = res.data
+        if (res) {
+          this.task = res
           this.initSSE()
         } else {
           this.$message.warning(`未找到该任务（ID: ${this.id}）`)

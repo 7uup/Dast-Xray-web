@@ -103,7 +103,7 @@
 </template>
 
 <script>
-import axios from "axios";
+import { getReportList, viewReport ,deleteReport} from "@/api/report";
 
 export default {
   name: "ActiveReport",
@@ -130,11 +130,10 @@ export default {
     /** 获取报告列表 **/
     async fetchReports(page = this.page, size = this.size, source = this.source) {
       try {
-        const res = await axios.get("http://localhost:8087/api/report/list", {
-          params: { page, size, source, keyword: this.keyword },
-        });
+        const res = await getReportList(page,size,source)
+        
 
-        this.reports = res.data || [];
+        this.reports = res || [];
 
         // === 关键改造逻辑 ===
         this.groupedReports = this.reports.reduce((groups, report) => {
@@ -164,13 +163,11 @@ export default {
           return;
         }
 
-        const res = await axios.get("http://localhost:8087/api/report/view", {
-          params: { id, task_id },
-        });
+        const res = await viewReport(id, task_id)
 
-        this.reportHtml = res.data;
+        this.reportHtml = res;
         this.dialogVisible = true;
-        this.reportCache[id] = res.data;
+        this.reportCache[id] = res;
       } catch (e) {
         this.$message.error("读取报告失败：" + e);
       }
@@ -183,15 +180,13 @@ export default {
       })
         .then(async () => {
           try {
-            const res = await axios.delete("http://localhost:8087/api/report/delete", {
-              params: { path: row.report_path, task_id: row.task_id, id: row.id },
-            });
-            if (res.data && res.data.success !== false) {
+            const res = await deleteReport(row.report_path,row.task_id,row.id);;
+            if (res && res.success !== false) {
               this.$message.success("删除成功");
               this.reportCache[row.id] = null;
               this.fetchReports();
             } else {
-              this.$message.error("删除失败：" + (res.data.message || ""));
+              this.$message.error("删除失败：" + (res.message || ""));
             }
           } catch (e) {
             this.$message.error("删除请求失败：" + e);

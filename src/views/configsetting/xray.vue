@@ -63,6 +63,8 @@ import "codemirror/mode/yaml/yaml.js";
 import "codemirror/theme/material.css";
 import axios from "axios";
 import yaml from "js-yaml";
+import { downloadConfig, loadConfigFiles ,loadConfigView, saveConfig} from '@/api/configsetting';
+
 
 export default {
   name: "ToolConfig",
@@ -104,8 +106,9 @@ export default {
   methods: {
     async fetchConfigFiles() {
       try {
-        const res = await axios.get("http://localhost:8087/api/config/xray/list");
-        this.configFiles = res.data;
+        const res = await loadConfigFiles();
+        console.log("配置文件列表：", res);
+        this.configFiles = res;
       } catch (e) {
         this.$message.error("获取配置文件列表失败：" + e);
       }
@@ -113,10 +116,8 @@ export default {
     async loadConfig() {
       if (!this.selectedFile) return;
       try {
-        const res = await axios.get("http://localhost:8087/api/config/xray/view", {
-          params: { filename: this.selectedFile },
-        });
-        this.configContent = res.data;
+        const res = await loadConfigView({ filename: this.selectedFile })
+        this.configContent = res;
         this.$nextTick(() => {
   if (this.$refs.cm && this.$refs.cm.codemirror) {
     this.$refs.cm.codemirror.refresh();
@@ -136,7 +137,7 @@ export default {
       }
 
       try {
-        await axios.put("http://localhost:8087/api/config/save", {
+        await saveConfig({
           filename: this.selectedFile,
           content: this.configContent,
         });
@@ -147,11 +148,8 @@ export default {
     },
     async downloadConfig() {
       try {
-        const res = await axios.get("http://localhost:8087/api/config/download", {
-          params: { filename: this.selectedFile },
-          responseType: "blob",
-        });
-        const url = window.URL.createObjectURL(new Blob([res.data]));
+        const res = await downloadConfig({ filename: this.selectedFile },"blob");
+        const url = window.URL.createObjectURL(new Blob([res]));
         const link = document.createElement("a");
         link.href = url;
         link.setAttribute("download", this.selectedFile);
