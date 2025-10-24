@@ -97,8 +97,8 @@ export default {
       const xrayTag = encodeURIComponent(`XRAY-OUT[${xyport}]`)
       const crawlergoTag = encodeURIComponent(`CRAWLERGO-ERR[${crawlerid}]`)
 
-      this.sseXray = new EventSource(`http://localhost:8087/sse/logs?tag=${xrayTag}`)
-      this.sseCrawlergo = new EventSource(`http://localhost:8087/sse/logs?tag=${crawlergoTag}`)
+      this.sseXray = new EventSource(`/sse/logs?tag=${xrayTag}`)
+      this.sseCrawlergo = new EventSource(`/sse/logs?tag=${crawlergoTag}`)
 
       this.sseXray.onmessage = e => {
         this.xrayLogs.push(e.data)

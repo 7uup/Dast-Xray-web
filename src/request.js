@@ -27,7 +27,7 @@ import axios from 'axios';
 
 //process.env.VUE_APP_BASE_API
 const service = axios.create({
-  baseURL: 'http://127.0.0.1:8087/', // 全局 baseURL
+  baseURL: process.env.VUE_APP_BASE_API, // 全局 baseURL
   timeout: 5000,
 });
 
