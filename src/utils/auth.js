@@ -1,15 +1,14 @@
-import Cookies from 'js-cookie'
-
-const TokenKey = 'vue_admin_template_token'
+// src/utils/auth.js
+const TOKEN_KEY = 'app_user_token';
 
 export function getToken() {
-  return Cookies.get(TokenKey)
+  return localStorage.getItem(TOKEN_KEY);
 }
 
 export function setToken(token) {
-  return Cookies.set(TokenKey, token)
+  localStorage.setItem(TOKEN_KEY, token);
 }
 
 export function removeToken() {
-  return Cookies.remove(TokenKey)
+  localStorage.removeItem(TOKEN_KEY);
 }

@@ -125,6 +125,24 @@ export const constantRoutes = [
       name: 'tools',
       meta: { title: '工具配置',  noCache: true }
     },
+    {
+      path: 'webhook',
+      component: () => import('@/views/configsetting/webhook'),
+      name: 'webhook',
+      meta: { title: 'webhook配置',  noCache: true }
+    },
+    {
+      path: 'openapisecret',
+      component: () => import('@/views/configsetting/apisecret'),
+      name: 'openapisecret',
+      meta: { title: 'apisecret配置',  noCache: true }
+    }, 
+    {
+      path: 'changepassword',
+      component: () => import('@/views/configsetting/changepassword'),
+      name: 'changepassword',
+      meta: { title: 'changepassword',  noCache: true }
+    },
   ]
 },
 

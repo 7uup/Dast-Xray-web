@@ -157,37 +157,47 @@
     </el-card>
 
     <!-- 添加任务弹窗 -->
-    <el-dialog title="添加扫描任务" :visible.sync="showAddTaskDialog" width="520px">
-      <el-form label-width="100px" label-position="left">
-        <el-form-item label="任务名称">
-          <el-input v-model.trim="taskName" placeholder="请输入任务名称" />
-        </el-form-item>
-        <el-form-item label="扫描URL">
-          <el-input
-            type="textarea"
-            :rows="4"
-            v-model="scanUrls"
-            placeholder="请输入扫描URL，每行一个，如果只填一行则为单任务"
-          />
-        </el-form-item>
-        <el-form-item label="报告格式">
-          <el-select v-model="dialogSelectedFormat" placeholder="选择报告格式">
-            <el-option label="HTML" value="html" />
-            <el-option label="JSON" value="json" />
-          </el-select>
-        </el-form-item>
-      </el-form>
-      <span slot="footer">
-        <el-button @click="showAddTaskDialog = false">取消</el-button>
-        <el-button type="primary" @click="submitAddTask">提交</el-button>
-      </span>
-    </el-dialog>
+<el-dialog title="添加扫描任务" :visible.sync="showAddTaskDialog" width="520px">
+  <el-form label-width="100px" label-position="left">
+    <el-form-item label="任务名称">
+      <el-input v-model.trim="taskName" placeholder="请输入任务名称" />
+    </el-form-item>
+    
+    <el-form-item label="扫描URL">
+      <el-input
+        type="textarea"
+        :rows="4"
+        v-model="scanUrls"
+        placeholder="请输入扫描URL，每行一个，如果只填一行则为单任务"
+      />
+    </el-form-item>
+
+    <!-- 新增选择 Webhook ID 的部分 -->
+    <el-form-item label="选择 Webhook">
+      <el-select v-model="webhookId" placeholder="请选择 Webhook ID" clearable>
+        <el-option
+          v-for="webhook in webhooks"
+          :key="webhook.id"
+          :label="webhook.name"
+          :value="webhook.id"
+        />
+      </el-select>
+    </el-form-item>
+
+  </el-form>
+
+  <span slot="footer">
+    <el-button @click="showAddTaskDialog = false">取消</el-button>
+    <el-button type="primary" @click="submitAddTask">提交</el-button>
+  </span>
+</el-dialog>
+
   </div>
 </template>
 
 <script>
-import { getTaskList, addTask, deleteTask, updateTaskStatus, startTask, stopTask, updateTask,addBatchTask,startGroupTask } from '@/api/task'
-
+import { getTaskList, addTask, deleteTask, updateTaskStatus, startTask, stopTask, updateTask, addBatchTask, startGroupTask } from '@/api/task';
+import { getWebhooks } from "@/api/webhook";
 
 export default {
   name: 'VulnerabilityScanner',
@@ -197,7 +207,9 @@ export default {
       total: 0,
       currentPage: 1,
       pageSize: 50,
-      source:1,
+      source: 1,
+      webhookId: null, // 用来绑定选择的 webhook id，默认为 null
+      webhooks: [],
       refreshing: false, // ✅ 刷新状态
       showAddTaskDialog: false,
       showEditTaskDialog: false, // 新增：控制修改弹窗显示
@@ -210,254 +222,270 @@ export default {
         name: '',
         url: '',
         output: '',
-        format: 'html'
+        format: 'html',
+        webhookId: null // 新增：用于编辑时绑定的 webhookId
       }
-    }
+    };
   },
 
   mounted() {
-    this.loadTaskList()
+    this.loadTaskList();
+    this.loadWebhooks(); // 加载 webhook 数据
   },
 
   methods: {
-  formatDate(datetime) {
-    if (!datetime) return '-';
-    const date = new Date(datetime);
-    const y = date.getFullYear();
-    const m = String(date.getMonth() + 1).padStart(2, '0');
-    const d = String(date.getDate()).padStart(2, '0');
-    const h = String(date.getHours()).padStart(2, '0');
-    const min = String(date.getMinutes()).padStart(2, '0');
-    const s = String(date.getSeconds()).padStart(2, '0');
-    return `${y}-${m}-${d} ${h}:${min}:${s}`;
-  },
+    formatDate(datetime) {
+      if (!datetime) return '-';
+      const date = new Date(datetime);
+      const y = date.getFullYear();
+      const m = String(date.getMonth() + 1).padStart(2, '0');
+      const d = String(date.getDate()).padStart(2, '0');
+      const h = String(date.getHours()).padStart(2, '0');
+      const min = String(date.getMinutes()).padStart(2, '0');
+      const s = String(date.getSeconds()).padStart(2, '0');
+      return `${y}-${m}-${d} ${h}:${min}:${s}`;
+    },
 
-  getStatusLabel(status) {
-    switch (status) {
-      case 0: return '待扫描';
-      case 1: return '扫描中';
-      case 2: return '已完成';
-      case 3: return '已停止';
-      default: return '未知状态';
-    }
-  },
-
-  goToDetail(row) {
-    this.$router.push(`/task/detail/${row.id}`);
-  },
-
-  handleSizeChange(size) {
-    this.pageSize = size;
-    this.currentPage = 1;
-    this.loadTaskList();
-  },
-
-async loadTaskList() {
-  this.refreshing = true;
-  try {
-    const res = await getTaskList(this.currentPage, this.pageSize, this.source);
-    const data = res || res;
-    const rawList = data.list || [];
-
-    const grouped = {};
-    for (const task of rawList) {
-      if (task.groupId) {
-        // ✅ 属于任务组
-        if (!grouped[task.groupId]) {
-          grouped[task.groupId] = {
-            isGroup: true,
-            groupId: task.groupId,
-            name: `${task.name?.split('-')[0] || '任务组'}--(${task.groupId})`,
-            urls: [],
-            status: task.status,
-            createtime: task.createtime,
-            source: task.source
-          };
+    // 加载 webhook 数据
+    async loadWebhooks() {
+      this.loading = true;
+      try {
+        const res = await getWebhooks(); // 获取 webhook 数据
+        if (res) {
+          this.webhooks = Array.isArray(res) ? res : [res]; // 如果是数组，直接赋值；如果是单个对象，转成数组
         }
-        grouped[task.groupId].urls.push(task);
-      } else {
-        // ✅ 单任务也带一个 urls 数组，以统一展开结构
-        grouped[`single-${task.id}`] = {
-          isGroup: false,
-          id: task.id,
-          name: task.name,
-          url: task.url,
-          urls: [{ url: task.url, status: task.status }], // 👈 添加 urls 数组
-          status: task.status,
-          createtime: task.createtime,
-          source: task.source
-        };
+      } catch (e) {
+        this.$message.error("加载失败：" + e.message); // 弹出错误信息
+      } finally {
+        this.loading = false;
       }
-    }
+    },
 
-    this.taskList = Object.values(grouped);
-    this.total = data.total || 0;
-  } catch (err) {
-    console.error(err);
-    this.$message.error('加载任务列表失败');
-  } finally {
-    this.refreshing = false;
-  }
-}
-,
+    getStatusLabel(status) {
+      switch (status) {
+        case 0: return '待扫描';
+        case 1: return '扫描中';
+        case 2: return '已完成';
+        case 3: return '已停止';
+        default: return '未知状态';
+      }
+    },
 
-  refreshTaskList() {
-    this.loadTaskList();
-    this.$message.success('刷新成功');
-  },
+    goToDetail(row) {
+      this.$router.push(`/task/detail/${row.id}`);
+    },
 
-  handlePageChange(page) {
-    this.currentPage = page;
-    this.loadTaskList();
-  },
+    handleSizeChange(size) {
+      this.pageSize = size;
+      this.currentPage = 1;
+      this.loadTaskList();
+    },
 
-async submitAddTask() {
-  if (!this.scanUrls || !this.scanUrls.trim()) {
-    this.$message.warning("请至少输入一个扫描URL");
-    return;
-  }
+    async loadTaskList() {
+      this.refreshing = true;
+      try {
+        const res = await getTaskList(this.currentPage, this.pageSize, this.source);
+        const data = res || res;
+        const rawList = data.list || [];
 
-  // 按行拆分 URL
-  const urls = this.scanUrls
-    .split(/\r?\n/)
-    .map(u => u.trim())
-    .filter(u => u !== "");
+        const grouped = {};
+        for (const task of rawList) {
+          if (task.groupId) {
+            // ✅ 属于任务组
+            if (!grouped[task.groupId]) {
+              grouped[task.groupId] = {
+                isGroup: true,
+                groupId: task.groupId,
+                name: `${task.name?.split('-')[0] || '任务组'}--(${task.groupId})`,
+                urls: [],
+                status: task.status,
+                createtime: task.createtime,
+                source: task.source
+              };
+            }
+            grouped[task.groupId].urls.push(task);
+          } else {
+            // ✅ 单任务也带一个 urls 数组，以统一展开结构
+            grouped[`single-${task.id}`] = {
+              isGroup: false,
+              id: task.id,
+              name: task.name,
+              url: task.url,
+              urls: [{ url: task.url, status: task.status }], // 👈 添加 urls 数组
+              status: task.status,
+              createtime: task.createtime,
+              source: task.source
+            };
+          }
+        }
 
-  if (urls.length === 0) {
-    this.$message.warning("URL 不能为空");
-    return;
-  }
+        this.taskList = Object.values(grouped);
+        this.total = data.total || 0;
+      } catch (err) {
+        console.error(err);
+        this.$message.error('加载任务列表失败');
+      } finally {
+        this.refreshing = false;
+      }
+    },
 
-  try {
-    if (urls.length === 1) {
-      // 单个任务
-      const task = {
-        name: this.taskName || `任务-${Date.now()}`,
-        url: urls[0],
-        format: this.dialogSelectedFormat || "html",
-        status: 0,
-        source: 1
-      };
-      const res = await addTask(task);
-      this.$message.success(res ? "成功添加 1 个任务" : "添加任务失败");
-    } else {
-      // 批量任务
-      const tasks = urls.map((url, index) => ({
-        name: this.taskName
-          ? `${this.taskName}-${index + 1}`
-          : `任务-${index + 1}`,
-        url: url,
-        format: this.dialogSelectedFormat || "html",
-        status: 0,
-        source: 1
-      }));
-      const res = await addBatchTask(tasks);
-      const addedCount = res?.length || tasks.length;
-      this.$message.success(`成功添加 ${addedCount} 个任务`);
-    }
+    refreshTaskList() {
+      this.loadTaskList();
+      this.$message.success('刷新成功');
+    },
 
-    this.showAddTaskDialog = false;
+    handlePageChange(page) {
+      this.currentPage = page;
+      this.loadTaskList();
+    },
 
-    // 清空表单
-    this.taskName = "";
-    this.scanUrls = "";
-    this.dialogSelectedFormat = "html";
+    async submitAddTask() {
+      if (!this.scanUrls || !this.scanUrls.trim()) {
+        this.$message.warning("请至少输入一个扫描URL");
+        return;
+      }
 
-    this.loadTaskList();
-  } catch (err) {
-    console.error(err);
-    this.$message.error("添加任务失败：" + err);
-  }
-}
-,
+      // 按行拆分 URL
+      const urls = this.scanUrls
+        .split(/\r?\n/)
+        .map(u => u.trim())
+        .filter(u => u !== "");
 
-async startTaskById(row) {
-  try {
-    console.log("row::::",row)
-    if (row.isGroup) {
-      await startGroupTask(row.groupId, row.source);
-      this.$message.success(`任务组已启动`);
-    } else {
-      await startTask(row.id, row.source);
-      this.$message.success('单任务已启动');
-    }
-    this.loadTaskList();
-  } catch (e) {
-    this.$message.error('启动任务失败');
-  }
-}
-,
+      if (urls.length === 0) {
+        this.$message.warning("URL 不能为空");
+        return;
+      }
 
-  async stopTaskById(row) {
-    try {
-      const res = await stopTask(row.groupId);
+      try {
+        const webhookId = this.webhookId; // 获取当前选择的 Webhook ID
 
-      if(res === 13000){
-        this.$message.success('任务已停止');
+        if (urls.length === 1) {
+          // 单个任务
+          const task = {
+            name: this.taskName || `任务-${Date.now()}`,
+            url: urls[0],
+            format: this.dialogSelectedFormat || "html",
+            status: 0,
+            source: 1,
+            webhookid: webhookId // 提交 Webhook ID
+          };
+          const res = await addTask(task);
+          this.$message.success(res ? "成功添加 1 个任务" : "添加任务失败");
+        } else {
+          // 批量任务
+          const tasks = urls.map((url, index) => ({
+            name: this.taskName
+              ? `${this.taskName}-${index + 1}`
+              : `任务-${index + 1}`,
+            url: url,
+            format: this.dialogSelectedFormat || "html",
+            status: 0,
+            source: 1,
+            webhookid: webhookId // 提交 Webhook ID
+          }));
+          const res = await addBatchTask(tasks);
+          const addedCount = res?.length || tasks.length;
+          this.$message.success(`成功添加 ${addedCount} 个任务`);
+        }
+
+        this.showAddTaskDialog = false;
+
+        // 清空表单
+        this.taskName = "";
+        this.scanUrls = "";
+        this.dialogSelectedFormat = "html";
+
         this.loadTaskList();
-      } else {
+      } catch (err) {
+        console.error(err);
+        this.$message.error("添加任务失败：" + err);
+      }
+    },
+
+    async startTaskById(row) {
+      try {
+        console.log("row::::", row);
+        if (row.isGroup) {
+          await startGroupTask(row.groupId, row.source);
+          this.$message.success(`任务组已启动`);
+        } else {
+          await startTask(row.id, row.source);
+          this.$message.success('单任务已启动');
+        }
+        this.loadTaskList();
+      } catch (e) {
+        this.$message.error('启动任务失败');
+      }
+    },
+
+    async stopTaskById(row) {
+      try {
+        const res = await stopTask(row.groupId);
+
+        if (res === 13000) {
+          this.$message.success('任务已停止');
+          this.loadTaskList();
+        } else {
+          this.$message.error('停止失败');
+        }
+      } catch {
         this.$message.error('停止失败');
       }
-    } catch {
-      this.$message.error('停止失败');
-    }
-  },
+    },
 
-  async deleteTaskById(id) {
-    try {
-      const res = await deleteTask(id);
-      if(res === 1 || res === 2){
-        this.$message.success('任务已删除');
-        this.loadTaskList();
-      } else {
+    async deleteTaskById(id) {
+      try {
+        const res = await deleteTask(id);
+        if (res === 1 || res === 2) {
+          this.$message.success('任务已删除');
+          this.loadTaskList();
+        } else {
+          this.$message.error('删除失败');
+        }
+      } catch {
         this.$message.error('删除失败');
       }
-    } catch {
-      this.$message.error('删除失败');
-    }
-  },
+    },
 
-  async changeStatus(row, newStatus) {
-    try {
-      const ret = await updateTaskStatus(row.id, newStatus);
-      if(ret.data === 1){
-        this.$message.success('状态已更新');
-        this.loadTaskList();
-      } else {
+    async changeStatus(row, newStatus) {
+      try {
+        const ret = await updateTaskStatus(row.id, newStatus);
+        if (ret.data === 1) {
+          this.$message.success('状态已更新');
+          this.loadTaskList();
+        } else {
+          this.$message.error('状态更新失败');
+        }
+      } catch {
         this.$message.error('状态更新失败');
       }
-    } catch {
-      this.$message.error('状态更新失败');
-    }
-  },
+    },
 
-  openEditTaskDialog(row) {
-    this.editTask = { ...row };
-    this.showEditTaskDialog = true;
-  },
+    openEditTaskDialog(row) {
+      this.editTask = { ...row, webhookId: row.webhookId || null }; // 将 Webhook ID 传递给编辑任务
+      this.showEditTaskDialog = true;
+    },
 
-  async submitEditTask() {
-    if (!this.editTask.name || !this.editTask.url) {
-      this.$message.warning('请填写完整信息');
-      return;
-    }
-    try {
-      const res = await updateTask(this.editTask);
-      if(res === 1){
-        this.$message.success('任务修改成功');
-        this.showEditTaskDialog = false;
-        this.loadTaskList();
-      } else {
+    async submitEditTask() {
+      if (!this.editTask.name || !this.editTask.url) {
+        this.$message.warning('请填写完整信息');
+        return;
+      }
+      try {
+        const res = await updateTask(this.editTask);
+        if (res === 1) {
+          this.$message.success('任务修改成功');
+          this.showEditTaskDialog = false;
+          this.loadTaskList();
+        } else {
+          this.$message.error('任务修改失败');
+        }
+      } catch {
         this.$message.error('任务修改失败');
       }
-    } catch {
-      this.$message.error('任务修改失败');
     }
   }
-}
-
-}
-  
+};
 </script>
 
 
