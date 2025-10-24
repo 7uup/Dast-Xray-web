@@ -1,6 +1,6 @@
 module.exports = {
 
-  title: 'Vue Admin Template',
+  title: 'Xray-web',
 
   /**
    * @type {boolean} true | false
