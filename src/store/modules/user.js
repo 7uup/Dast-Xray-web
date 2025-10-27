@@ -59,8 +59,8 @@ const actions = {
         }
 
         const { name, avatar } = data
-        commit('SET_NAME', name) // 设置用户姓名
-        commit('SET_AVATAR', avatar) // 设置用户头像
+        commit('SET_NAME', "name") // 设置用户姓名
+        commit('SET_AVATAR', "avatar") // 设置用户头像
         resolve(data)
       }).catch(error => {
         reject(error) // 获取用户信息失败

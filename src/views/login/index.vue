@@ -52,6 +52,11 @@ export default {
           if (res.code === '200') {
             const token = res.data;
             setToken(token);
+            console.log('Token before commit:', token)
+this.$store.commit('user/SET_TOKEN', token)
+console.log('Token in store after commit:', this.$store.state.user.token)
+console.log('Token in localStorage:', localStorage.getItem('app_user_token'))
+
             this.$message.success('登录成功');
             this.$router && this.$router.replace({ path: '/' });
           } else {
