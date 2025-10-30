@@ -29,9 +29,9 @@
           <el-input v-model.trim="form.chromePath" placeholder="例如：/usr/bin/google-chrome 或 C:\Program Files\Chrome\chrome.exe" />
         </el-form-item>
 
-        <el-form-item label="rad 可执行路径" prop="radPath">
+        <!-- <el-form-item label="rad 可执行路径" prop="radPath">
           <el-input v-model.trim="form.radPath" placeholder="例如：/usr/bin/rad" />
-        </el-form-item>
+        </el-form-item> -->
 
 
         <el-form-item>
@@ -59,7 +59,7 @@ export default {
         xrayPath: '',
         crawlergoPath: '',
         chromePath: '',
-        radPath: '',
+        // radPath: '',
         extra: ''
       },
       original: null,
@@ -75,9 +75,9 @@ export default {
         chromePath: [
           { required: true, message: '请填写 Chrome 可执行路径', trigger: 'blur' }
         ],
-        radPath: [
-          { required: true, message: '请填写 rad 可执行路径', trigger: 'blur' }
-        ]
+        // radPath: [
+        //   { required: true, message: '请填写 rad 可执行路径', trigger: 'blur' }
+        // ]
       }
     };
   },
@@ -95,7 +95,7 @@ export default {
           xrayPath: data.xrayPath || '',
           crawlergoPath: data.crawlergoPath || '',
           chromePath: data.chromePath || '',
-          radPath: data.radPath || '',
+          // radPath: data.radPath || '',
           extra: typeof data.extra === 'string' ? data.extra : extraStr
         };
         // 存储原始，用于重置
@@ -126,7 +126,7 @@ export default {
           xrayPath: this.form.xrayPath.trim(),
           crawlergoPath: this.form.crawlergoPath.trim(),
           chromePath: this.form.chromePath.trim(),
-          radPath: this.form.radPath.trim(),
+          // radPath: this.form.radPath.trim(),
         };
 
         this.saving = true;
